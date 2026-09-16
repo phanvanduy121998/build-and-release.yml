@@ -1,0 +1,63 @@
+name: Automated Build and Release Pipeline
+
+# 1. Trigger: Chạy khi có lệnh gắn Tag phiên bản (vd: v1.0.0) hoặc đẩy lên nhánh main
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  # ================= GIAI ĐOẠN BUILD =================
+  build-and-package:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Tác vụ 1: Lấy mã nguồn từ repo về máy ảo (Checkout Task)
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      # Tác vụ 2: Thiết lập môi trường (Utility Task)
+      - name: Setup Environment
+        run: |
+          echo "Bắt đầu chu trình Build & Package..."
+          mkdir dist
+
+      # Tác vụ 3: Build & Đóng gói (Build & Package Task)
+      # Giả lập gom các file code/firmware vào một file zip
+      - name: Build and Compress Artifacts
+        run: |
+          echo "Dang dong goi san pham..." > dist/release_notes.txt
+          zip -r release-artifact.zip dist/
+
+      # Tác vụ 4: Lưu trữ thành phẩm tạm thời trên Pipeline (Artifact Upload)
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: release-artifact.zip
+
+  # ================= GIAI ĐOẠN RELEASE =================
+  deploy-release:
+    needs: build-and-package # Chỉ chạy khi giai đoạn Build thành công
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Cấp quyền tạo Release
+
+    steps:
+      # Tác vụ 1: Tải lại thành phẩm từ bước Build
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+
+      # Tác vụ 2: Tác vụ phát hành chính thức (Release Task)
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-artifact.zip
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: |
+            Bản cập nhật tự động được tạo bởi CI/CD Pipeline.
+            - Sản phẩm đã được đóng gói và kiểm tra tự động.
+
