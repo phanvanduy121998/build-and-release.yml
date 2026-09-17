@@ -2,6 +2,7 @@ name: Automated Build and Release Pipeline
 
 # 1. Trigger: Chạy khi có lệnh gắn Tag phiên bản (vd: v1.0.0) hoặc đẩy lên nhánh main
 on:
+  workflow_dispatch:
   push:
     tags:
       - 'v*'
